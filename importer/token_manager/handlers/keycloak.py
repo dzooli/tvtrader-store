@@ -3,7 +3,7 @@ Keycloak token handler implementation.
 
 This module provides a TokenHandler implementation for Keycloak authentication.
 """
-
+from keycloak import KeycloakGetError
 from keycloak.keycloak_admin import KeycloakAdmin
 from keycloak.keycloak_openid import KeycloakOpenID
 from loguru import logger
@@ -72,11 +72,12 @@ class KeycloakTokenHandler(TokenHandler):
                 - client_secret_id (str): Client ID to retrieve secret for
 
         Returns:
-            str: The client secret stored in Keycloak
+            str: The client secret string retrieved from Keycloak
 
         Raises:
             AttributeError: If the specified client is not found in Keycloak
-            KeyError: If there is an error retrieving the client secret from Keycloak
+            KeyError: If there is an error retrieving clients or client secret from Keycloak
+            ValueError: If the KeycloakAdmin client initialization fails
         """
         access_token = kwargs.get('access_token')
         server_url = kwargs.get('server_url')
@@ -89,32 +90,51 @@ class KeycloakTokenHandler(TokenHandler):
             server_url=server_url,
             realm_name=realm_name,
             token={'access': access_token}
-        )
+        ) or None
+        if not keycloak_admin:
+            logger.error(f"Failed to initialize KeycloakAdmin client for realm: {realm_name}")
+            raise ValueError(f"Failed to initialize KeycloakAdmin client for realm: {realm_name}")
+
+        # Get all clients
+        logger.info("Getting all Keycloak clients")
 
         try:
-            # Get all clients
-            logger.info("Getting all Keycloak clients")
             clients = keycloak_admin.get_clients()
+        except KeycloakGetError:
+            logger.error("Failed to get all clients from Keycloak")
+            raise KeyError("Failed to get all clients from Keycloak")
 
-            # Find the client by clientId
-            logger.info(f"Looking for client with ID: {client_secret_id}")
-            client_id = None
-            for cl in clients:
+        if not clients:
+            logger.error("No clients found in Keycloak")
+            raise KeyError("No clients found in Keycloak")
+
+        logger.success("Successfully obtained all clients from Keycloak")
+
+        # Find the client by clientId
+        logger.info(f"Looking for client with ID: {client_secret_id}")
+        client_id = None
+        for cl in clients:
+            try:
                 if cl["clientId"] == client_secret_id:
                     client_id = cl["id"]
                     logger.info(f"Found client with ID: {client_id}")
                     break
+            except KeyError:
+                logger.error(f"Client {cl} does not have clientId")
+                raise KeyError(f"Client {cl} does not have clientId")
 
-            if not client_id:
-                logger.error(f"Client {client_secret_id} not found in Keycloak")
-                raise AttributeError(f"Client {client_secret_id} not found")
+        if not client_id:
+            logger.error(f"Client {client_secret_id} not found in Keycloak")
+            raise AttributeError(f"Client {client_secret_id} not found")
 
-            # Get client secret
-            logger.info(f"Getting client secret for client ID: {client_id}")
+        # Get client secret
+        logger.info(f"Getting client secret for client ID: {client_id}")
+        try:
             client_secret = keycloak_admin.get_client_secrets(client_id)[0]
-            logger.success("Successfully obtained client secret from Keycloak")
+        except KeycloakGetError:
+            logger.error(f"Failed to get client secret for client ID: {client_id}")
+            raise KeyError(f"Failed to get client secret for client ID: {client_id}")
 
-            return client_secret
-        except Exception as exc:
-            logger.error(f"Failed to get client secret from Keycloak: {str(exc)}")
-            raise KeyError(f"Failed to get client secret from Keycloak: {str(exc)}")
+        logger.success("Successfully obtained client secret from Keycloak")
+
+        return client_secret
