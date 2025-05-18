@@ -1,13 +1,4 @@
 services:
-  influxdb:
-    build: ./docker
-    env_file: .env
-    ports:
-      - "8086:8086"
-    volumes:
-      - influxdb-data:/var/lib/influxdb2
-      - influxdb-config:/etc/influxdb2
-
   keycloak:
     image: quay.io/keycloak/keycloak:latest
     env_file: .env
@@ -19,6 +10,17 @@ services:
     command: start-dev
     volumes:
       - keycloak-data:/opt/keycloak/data
+
+  influxdb:
+    build: ./docker
+    env_file: .env
+    depends_on:
+      - keycloak
+    ports:
+      - "8086:8086"
+    volumes:
+      - influxdb-data:/var/lib/influxdb2
+      - influxdb-config:/etc/influxdb2
 
   importer:
     build:
