@@ -1,0 +1,42 @@
+services:
+  influxdb:
+    build: ./docker
+    env_file: .env
+    ports:
+      - "8086:8086"
+    volumes:
+      - influxdb-data:/var/lib/influxdb2
+      - influxdb-config:/etc/influxdb2
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    env_file: .env
+    environment:
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_PASS}
+    ports:
+      - "8080:8080"
+    command: start-dev
+    volumes:
+      - keycloak-data:/opt/keycloak/data
+
+  importer:
+    build:
+      context: ./importer
+    env_file: .env
+    depends_on:
+      - influxdb
+      - keycloak
+    volumes:
+      - ./importer:/app
+    command: supervisord -c /etc/supervisor/supervisord.conf
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+    influxdb-data:
+    influxdb-config:
+    keycloak-data:

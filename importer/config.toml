@@ -1,0 +1,29 @@
+# Configuration for import_prices.py
+
+[general]
+# Data source URL
+datasource_url = "http://localhost:3000"
+
+# InfluxDB configuration
+influx_url = "http://influxdb:8086"
+influx_org = "pricestore"
+
+# Keycloak configuration
+keycloak_url = "http://keycloak:8080"
+keycloak_realm = "tvtrader"
+keycloak_client_id = "admin-cli"
+keycloak_username = "admin"
+keycloak_client_secret = "tvtrader-influxdb"
+
+[data]
+# Tickers to fetch prices for in format BROKER:TICKER
+tickers = [
+    "FX:GBPUSD",
+    "FX:EURUSD"
+]
+
+# Timeframes to fetch prices for
+timeframes = [
+    "4H",
+    "1D"
+]
