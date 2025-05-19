@@ -2,24 +2,32 @@ FROM python:3.10-slim
 
 RUN apt-get update && \
     apt-get install -y supervisor && \
-    pip install influxdb-client loguru python-keycloak requests tomli && \
+    pip install hvac influxdb-client  loguru python-keycloak requests tomli  && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Create importer directory for package structure
+# Create proper Python package structure
 RUN mkdir -p /app/importer
 
-COPY ./import_prices.py /app
-COPY ./config.toml /app
-COPY ./run_hourly.sh /app
-COPY ./config.py /app/importer/
-COPY ./importer.py /app/importer/
-COPY token_manager /app/importer/token_manager
+# Copy all files to maintain the correct package structure
+COPY ./import_prices.py /app/importer/
+COPY ./config.toml /app/importer/
+COPY ./run_hourly.sh /app/
+COPY config.py /app/importer/
+COPY importer.py /app/importer/
+COPY keycloak_handler.py /app/importer/
+COPY environment_handler.py /app/importer/
+COPY vault_handler.py /app/importer/
+COPY tokenhandler_factory.py /app/importer/
+COPY tokenmanager.py /app/importer/
+COPY environment_handler.py /app/importer
+COPY vault_handler.py /app/importer
+COPY ./__init__.py /app/importer/
 
-# Create __init__.py in importer directory to make it a package
-RUN touch /app/importer/__init__.py
+# Make sure the Python path includes the parent directory
+ENV PYTHONPATH=/app
 
 RUN chmod +x /app/run_hourly.sh
 
