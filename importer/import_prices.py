@@ -1,10 +1,16 @@
 import sys
+import os
+from pathlib import Path
+
+# Add the parent directory to the Python path so that 'importer' can be found as a package
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from loguru import logger
 
-from importer.config import Config
+from importer.importer import Config
 from importer.importer import PriceImporter
-from importer.token_manager import TokenManager, TokenHandlerFactory
+from importer.tokenmanager import TokenManager
+from importer.tokenhandler_factory import TokenHandlerFactory
 
 # Configure loguru to write to standard output
 logger.remove()  # Remove default handler
@@ -17,20 +23,23 @@ def main():
     config = Config()
 
     # Initialize token handler and manager using factory
-    token_handler = TokenHandlerFactory.get_handler('keycloak')
+    token_handler = TokenHandlerFactory.get_handler('vault')
     token_manager = TokenManager(token_handler)
 
-    # Get InfluxDB token using TokenManager
-    logger.info(f"Getting tokens from {config.keycloak_url}...")
-    influx_token = token_manager.get_token(
-        "influxdb",
-        server_url=config.keycloak_url,
-        client_id=config.keycloak_client_id,
-        username=config.keycloak_username,
-        password=config.keycloak_password,
-        realm_name=config.keycloak_realm,
-        client_secret_id=config.keycloak_client_secret
-    )
+    # Try to get InfluxDB token from environment first
+    logger.info("Getting InfluxDB token...")
+    influx_token = config.influxdb_token
+
+    # If not available in environment, use TokenManager to get it from Vault
+    if not influx_token:
+        logger.info(f"InfluxDB token not found in environment, getting from {config.vault_url}...")
+        influx_token = token_manager.get_token(
+            "influxdb",
+            vault_url=config.vault_url,
+            vault_token=config.vault_token,
+            secret_path=config.vault_secret_path,
+            secret_key=config.vault_secret_key
+        )
 
     # Initialize price importer
     importer = PriceImporter(config)

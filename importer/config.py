@@ -33,6 +33,8 @@ class Config:
         # Load and validate required configuration
         self._load_datasource_url()
         self._load_keycloak_password()
+        self._load_influxdb_token()
+        self._load_vault_token()
 
     def _load_datasource_url(self):
         """Load datasource URL from environment or config file."""
@@ -52,6 +54,18 @@ class Config:
         if not self.keycloak_password:
             logger.error("KEYCLOAK_PASS environment variable is not set")
             raise ValueError("KEYCLOAK_PASS environment variable is not set. Please set it to the Keycloak admin password.")
+
+    def _load_influxdb_token(self):
+        """Load InfluxDB token from the environment."""
+        self._influxdb_token = os.environ.get("INFLUXDB_TOKEN")
+        if not self._influxdb_token:
+            logger.warning("INFLUXDB_TOKEN environment variable is not set. Will try to get it from Vault.")
+
+    def _load_vault_token(self):
+        """Load Vault token from the environment."""
+        self._vault_token = os.environ.get("VAULT_TOKEN")
+        if not self._vault_token:
+            logger.warning("VAULT_TOKEN environment variable is not set. This is required for Vault authentication.")
 
     @property
     def influx_url(self) -> str:
@@ -84,9 +98,9 @@ class Config:
         return self._config["general"]["keycloak_username"]
 
     @property
-    def keycloak_client_secret(self) -> str:
-        """Get Keycloak client secret."""
-        return self._config["general"]["keycloak_client_secret"]
+    def keycloak_user_attribute(self) -> str:
+        """Get Keycloak user attribute name for InfluxDB token."""
+        return self._config["general"]["keycloak_user_attribute"]
 
     @property
     def tickers(self) -> List[str]:
@@ -97,3 +111,28 @@ class Config:
     def timeframes(self) -> List[str]:
         """Get a list of timeframes."""
         return self._config["data"]["timeframes"]
+
+    @property
+    def vault_url(self) -> str:
+        """Get Vault URL."""
+        return self._config["general"].get("vault_url", "http://vault:8200")
+
+    @property
+    def vault_secret_path(self) -> str:
+        """Get Vault secret path for InfluxDB token."""
+        return self._config["general"].get("vault_secret_path", "secret/influxdb")
+
+    @property
+    def vault_secret_key(self) -> str:
+        """Get Vault secret key for InfluxDB token."""
+        return self._config["general"].get("vault_secret_key", "token")
+
+    @property
+    def vault_token(self) -> str:
+        """Get Vault token."""
+        return self._vault_token
+
+    @property
+    def influxdb_token(self) -> str:
+        """Get InfluxDB token."""
+        return self._influxdb_token
