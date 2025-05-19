@@ -2,8 +2,10 @@
 set -e
 
 while true; do
-  echo "[INFO] Running price importer at $(date)"
-  python import_prices.py
-  echo "[INFO] Sleeping for 1 hour"
-  sleep 3600
+    echo "[INFO] Awakening..."
+    sleep 120
+    echo "[INFO] Running price importer at $(date)"
+    cd /app/importer && python import_prices.py
+    echo "[INFO] Sleeping..."
+    sleep 3180
 done

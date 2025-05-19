@@ -7,8 +7,9 @@ Storage solution for the TvTrader stack based on InfluxDB for time-series data s
 This directory contains the configuration and code for the storage component of the TvTrader system. It consists of:
 
 1. **InfluxDB** - A time-series database for storing financial price data
-2. **Keycloak** - An identity and access management service for secure token storage
-3. **Importer** - A service that periodically imports price data from an external source
+2. **Vault** - A secrets management service for secure token storage
+3. **Keycloak** - An identity and access management service (legacy, being replaced by Vault)
+4. **Importer** - A service that periodically imports price data from an external source
 
 ## Components
 
@@ -19,15 +20,25 @@ The InfluxDB service is configured to store financial price data with:
 - User access control with admin, read-write, and read-only users
 - Persistent storage using Docker volumes
 
-### Keycloak
+### Vault
 
-The Keycloak service provides:
+The Vault service provides:
+- Secure storage for authentication tokens and secrets
+- Fine-grained access control
+- Integration with the setup process to store InfluxDB tokens
+- Persistent storage using Docker volumes
+
+During the setup process, the InfluxDB read-write and read-only tokens are automatically stored in Vault. The importer service authenticates with Vault to retrieve these tokens when needed, providing a secure approach for managing sensitive credentials.
+
+### Keycloak (Legacy)
+
+The Keycloak service was previously used for:
 - Secure storage for authentication tokens
 - Identity and access management
 - Integration with the setup process to store InfluxDB tokens
 - Persistent storage using Docker volumes
 
-During the setup process, the InfluxDB read-write token is automatically stored as a client secret in Keycloak. The importer service authenticates with Keycloak to retrieve this token when needed, providing a more secure approach than storing the token directly in environment variables or configuration files.
+Note: Keycloak is being phased out in favor of Vault for secret management. It is kept for backward compatibility.
 
 ### Importer
 
@@ -48,10 +59,12 @@ Key configuration parameters:
 - `DATASOURCE_URL` - URL of the data source API
 - `INFLUXDB_URL` - URL of the InfluxDB instance
 - `INFLUXDB_ORG` - Organization name in InfluxDB
-- `KEYCLOAK_PASS` - Password for the Keycloak admin user
-- `KEYCLOAK_URL` - URL of the Keycloak instance
+- `VAULT_TOKEN` - Root token for the Vault server
+- `VAULT_URL` - URL of the Vault instance
+- `KEYCLOAK_PASS` - Password for the Keycloak admin user (legacy)
+- `KEYCLOAK_URL` - URL of the Keycloak instance (legacy)
 
-Note: The InfluxDB token is not directly specified in the environment variables. Instead, it is automatically generated during setup and stored securely in Keycloak. The importer service retrieves this token from Keycloak when needed.
+Note: The InfluxDB tokens are not directly specified in the environment variables. Instead, they are automatically generated during setup and stored securely in Vault. The importer service retrieves these tokens from Vault when needed.
 
 ## Usage
 
@@ -100,14 +113,16 @@ Each data point contains:
 
 ### Directory Structure
 
-- `docker/` - Contains Dockerfile and setup script for InfluxDB and Keycloak integration
+- `docker/` - Contains Dockerfile and setup script for InfluxDB, Vault, and Keycloak integration
 - `importer/` - Contains code for the data importer service
   - `import_prices.py` - Main script for importing price data
   - `config.toml` - Configuration for the importer (tickers, timeframes)
+  - `vault_handler.py` - Handler for retrieving tokens from Vault
+  - `keycloak_handler.py` - Handler for retrieving tokens from Keycloak (legacy)
   - `run_hourly.sh` - Script to run the importer on an hourly schedule
   - `supervisord.conf` - Supervisor configuration for managing the importer process
-- `.env.example` - Example environment configuration including Keycloak settings
-- `docker-compose.yml` - Docker Compose configuration for all services (InfluxDB, Keycloak, Importer)
+- `.env.example` - Example environment configuration including Vault and Keycloak settings
+- `docker-compose.yml` - Docker Compose configuration for all services (InfluxDB, Vault, Keycloak, Importer)
 
 ### Adding New Data Sources
 
