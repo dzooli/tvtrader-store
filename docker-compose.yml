@@ -13,7 +13,6 @@ services:
     volumes:
       - vault-data:/vault/data
 
-
   influxdb:
     build: ./docker
     env_file: .env
