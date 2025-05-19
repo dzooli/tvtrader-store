@@ -6,7 +6,7 @@ This module contains tests for the TokenHandler abstract base class.
 
 import pytest
 
-from importer.token_manager.base import TokenHandler
+from importer.tokenmanager import TokenHandler
 
 
 class ConcreteTokenHandler(TokenHandler):

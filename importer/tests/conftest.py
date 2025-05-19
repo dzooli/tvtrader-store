@@ -1,7 +1,7 @@
 import pytest
 from unittest.mock import MagicMock
 
-from importer.token_manager import TokenHandler, TokenManager
+from importer.tokenmanager import TokenHandler, TokenManager
 
 
 @pytest.fixture

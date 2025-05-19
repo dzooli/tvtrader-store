@@ -8,8 +8,9 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from importer.token_manager.base import TokenManager
-from importer.token_manager.handlers.keycloak import KeycloakTokenHandler
+import os
+from importer.tokenmanager import TokenManager
+from importer.keycloak_handler import KeycloakTokenHandler
 
 
 class TestTokenManager:
@@ -66,45 +67,28 @@ class TestTokenManager:
 
         assert token_manager._tokens_cache == {}
 
-    def test_get_influxdb_token(self):
-        """Test that get_token handles the influxdb token type correctly."""
-        # Create a mock with spec=KeycloakTokenHandler
-        mock_keycloak_handler = MagicMock(spec=KeycloakTokenHandler)
-        mock_keycloak_handler.get_token.return_value = "test_token"
-        mock_keycloak_handler.get_client_secret.return_value = "influx_token"
-
-        # Create a TokenManager with the mock KeycloakTokenHandler
-        token_manager = TokenManager(mock_keycloak_handler)
-
-        # Patch isinstance to make it return True when checking if our mock is a KeycloakTokenHandler
-        with patch("importer.token_manager.base.isinstance", return_value=True):
-            # Get influxdb token
-            token = token_manager.get_token(
-                "influxdb",
-                server_url="http://keycloak",
-                realm_name="master",
-                client_secret_id="influxdb"
-            )
-
-            # Verify keycloak token was requested first
-            mock_keycloak_handler.get_token.assert_called_with(
-                server_url="http://keycloak",
-                realm_name="master",
-                client_secret_id="influxdb"
-            )
-
-            # Verify client secret was requested with keycloak token
-            mock_keycloak_handler.get_client_secret.assert_called_with(
-                access_token="test_token",
-                server_url="http://keycloak",
-                realm_name="master",
-                client_secret_id="influxdb"
-            )
-
-            assert token == "influx_token"
-            assert token_manager._tokens_cache["influxdb"] == "influx_token"
-
     def test_get_influxdb_token_not_keycloak_handler(self, token_manager):
         """Test that get_token raises NotImplementedError for influxdb when not using KeycloakTokenHandler."""
         with pytest.raises((NotImplementedError, KeyError)):
             token_manager.get_token("influxdb")
+
+    def test_get_influxdb_token_from_environment(self):
+        """Test that get_token gets the influxdb token from the environment."""
+        # Create a mock with spec=KeycloakTokenHandler
+        mock_keycloak_handler = MagicMock(spec=KeycloakTokenHandler)
+
+        # Create a TokenManager with the mock KeycloakTokenHandler
+        token_manager = TokenManager(mock_keycloak_handler)
+
+        # Set the environment variable
+        with patch.dict(os.environ, {"INFLUXDB_TOKEN": "env_influx_token"}):
+            # Get influxdb token
+            token = token_manager.get_token("influxdb")
+
+            # Verify keycloak token was not requested
+            mock_keycloak_handler.get_token.assert_not_called()
+            mock_keycloak_handler.get_client_secret.assert_not_called()
+
+            # Verify the token is from the environment
+            assert token == "env_influx_token"
+            assert token_manager._tokens_cache["influxdb"] == "env_influx_token"
