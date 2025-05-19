@@ -13,24 +13,12 @@ services:
     volumes:
       - vault-data:/vault/data
 
-  keycloak:
-    image: quay.io/keycloak/keycloak:latest
-    env_file: .env
-    environment:
-      - KEYCLOAK_ADMIN=admin
-      - KEYCLOAK_ADMIN_PASSWORD=${KEYCLOAK_PASS}
-    ports:
-      - "8080:8080"
-    command: start-dev
-    volumes:
-      - keycloak-data:/opt/keycloak/data
 
   influxdb:
     build: ./docker
     env_file: .env
     depends_on:
       - vault
-      - keycloak
     ports:
       - "8086:8086"
     volumes:
@@ -56,5 +44,4 @@ services:
 volumes:
     influxdb-data:
     influxdb-config:
-    keycloak-data:
     vault-data:

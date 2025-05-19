@@ -5,10 +5,6 @@ USER_PASSWORD="${INFLUX_PASSWORD:-userpassword}"
 ORG="pricestore"
 URL="http://localhost:8086"
 TOKEN="${INFLUX_ADMIN_TOKEN:-admintoken}"
-KEYCLOAK_URL="${KEYCLOAK_URL:-http://localhost:8080}"
-KEYCLOAK_ADMIN="admin"
-KEYCLOAK_ADMIN_PASSWORD="${KEYCLOAK_PASS:-admin_password}"
-KEYCLOAK_REALM="tvtrader"
 VAULT_URL="${VAULT_URL:-http://localhost:8200}"
 VAULT_TOKEN="${VAULT_TOKEN:-admintoken}"
 
@@ -75,80 +71,6 @@ curl -v -s -X POST \
 && echo ">> USER_TOKEN and READONLY_TOKEN stored in Vault successfully." \
 || echo ">> Failed to store the tokens!"
 
-echo ">> Waiting for Keycloak..."
-TIMEOUT=300
-while ! curl -s "${KEYCLOAK_URL}/health/ready" > /dev/null; do
-    if [ "$TIMEOUT" -le 0 ]; then
-        echo "Timeout waiting for Keycloak to be ready"
-        exit 1
-    fi
-    echo "Waiting for Keycloak to be ready... ${TIMEOUT}s remaining"
-    sleep 5
-    TIMEOUT=$((TIMEOUT-5))
-done
-
-echo ">> Storing USER_TOKEN in Keycloak..."
-# Get Keycloak access token
-echo ">> Getting Keycloak access token..."
-KC_ACCESS_TOKEN=$(curl -s \
-  -d "client_id=admin-cli" \
-  -d "username=$KEYCLOAK_ADMIN" \
-  -d "password=$KEYCLOAK_ADMIN_PASSWORD" \
-  -d "grant_type=password" \
-  "${KEYCLOAK_URL}/realms/master/protocol/openid-connect/token" | jq -r '.access_token')
-
-if [ -z "$KC_ACCESS_TOKEN" ] || [ "$KC_ACCESS_TOKEN" == "null" ]; then
-  echo "Failed to get Keycloak access token. Check Keycloak credentials and connectivity."
-else
-  echo ">> Keycloak access token obtained successfully."
-
-  # Check if realm exists, create if it doesn't
-  REALM_EXISTS=$(curl -s -o /dev/null -w "%{http_code}" \
-    -H "Authorization: Bearer $KC_ACCESS_TOKEN" \
-    "${KEYCLOAK_URL}/admin/realms/$KEYCLOAK_REALM")
-
-  if [ "$REALM_EXISTS" != "200" ]; then
-    echo ">> Creating realm $KEYCLOAK_REALM..."
-    curl -s -X POST \
-      -H "Authorization: Bearer $KC_ACCESS_TOKEN" \
-      -H "Content-Type: application/json" \
-      -d "{\"realm\":\"$KEYCLOAK_REALM\",\"enabled\":true}" \
-      "${KEYCLOAK_URL}/admin/realms"
-  fi
-
-  # Store USER_TOKEN as a user attribute
-  # First check if the admin user exists
-  ADMIN_USER="admin"
-  USER_ID=$(curl -s \
-    -H "Authorization: Bearer $KC_ACCESS_TOKEN" \
-    "${KEYCLOAK_URL}/admin/realms/$KEYCLOAK_REALM/users" | jq -r ".[] | select(.username==\"$ADMIN_USER\") | .id")
-
-  if [ -z "$USER_ID" ]; then
-    echo ">> Admin user not found in realm $KEYCLOAK_REALM, creating..."
-    # Create admin user if it doesn't exist
-    USER_ID=$(curl -s -X POST \
-      -H "Authorization: Bearer $KC_ACCESS_TOKEN" \
-      -H "Content-Type: application/json" \
-      -d "{\"username\":\"$ADMIN_USER\",\"enabled\":true}" \
-      "${KEYCLOAK_URL}/admin/realms/$KEYCLOAK_REALM/users" \
-      -v 2>&1 | grep -oP 'Location: .*/\K[^/]+(?=\r)')
-
-    if [ -z "$USER_ID" ]; then
-      echo "Failed to create admin user in Keycloak."
-      exit 1
-    fi
-  fi
-
-  echo ">> Storing USER_TOKEN as user attribute..."
-  # Update user attributes to include the influx_token
-  curl -s -X PUT \
-    -H "Authorization: Bearer $KC_ACCESS_TOKEN" \
-    -H "Content-Type: application/json" \
-    -d "{\"attributes\":{\"influx_token\":[\"$USER_TOKEN\"]}}" \
-    "${KEYCLOAK_URL}/admin/realms/$KEYCLOAK_REALM/users/$USER_ID"
-
-  echo ">> USER_TOKEN stored in Keycloak as user attribute successfully."
-fi
 
 echo "----------------------------"
 echo "Admin token: $TOKEN"

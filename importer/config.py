@@ -32,7 +32,6 @@ class Config:
 
         # Load and validate required configuration
         self._load_datasource_url()
-        self._load_keycloak_password()
         self._load_influxdb_token()
         self._load_vault_token()
 
@@ -48,12 +47,6 @@ class Config:
                 logger.error("DATASOURCE_URL not found in environment variables or config file")
                 raise ValueError("DATASOURCE_URL not found in environment variables or config file")
 
-    def _load_keycloak_password(self):
-        """Load Keycloak password from the environment."""
-        self.keycloak_password = os.environ.get("KEYCLOAK_PASS")
-        if not self.keycloak_password:
-            logger.error("KEYCLOAK_PASS environment variable is not set")
-            raise ValueError("KEYCLOAK_PASS environment variable is not set. Please set it to the Keycloak admin password.")
 
     def _load_influxdb_token(self):
         """Load InfluxDB token from the environment."""
@@ -77,30 +70,6 @@ class Config:
         """Get InfluxDB organization."""
         return self._config["general"]["influx_org"]
 
-    @property
-    def keycloak_url(self) -> str:
-        """Get Keycloak URL."""
-        return self._config["general"]["keycloak_url"]
-
-    @property
-    def keycloak_realm(self) -> str:
-        """Get Keycloak realm."""
-        return self._config["general"]["keycloak_realm"]
-
-    @property
-    def keycloak_client_id(self) -> str:
-        """Get Keycloak client ID."""
-        return self._config["general"]["keycloak_client_id"]
-
-    @property
-    def keycloak_username(self) -> str:
-        """Get Keycloak username."""
-        return self._config["general"]["keycloak_username"]
-
-    @property
-    def keycloak_user_attribute(self) -> str:
-        """Get Keycloak user attribute name for InfluxDB token."""
-        return self._config["general"]["keycloak_user_attribute"]
 
     @property
     def tickers(self) -> List[str]:

@@ -8,12 +8,6 @@ datasource_url = "http://localhost:3000"
 influx_url = "http://influxdb:8086"
 influx_org = "pricestore"
 
-# Keycloak configuration (legacy)
-keycloak_url = "http://keycloak:8080"
-keycloak_realm = "tvtrader"
-keycloak_client_id = "admin-cli"
-keycloak_username = "admin"
-keycloak_user_attribute = "influx_token"
 
 # Vault configuration
 vault_url = "http://vault:8200"

@@ -60,7 +60,6 @@ The project is organized into modules:
 - `importer.py` - Contains the `PriceImporter` class for handling the price import process
 - `import_prices.py` - Main script that uses the above modules to run the import process
 - `vault_handler.py` - Handler for retrieving tokens from Vault
-- `keycloak_handler.py` - Handler for retrieving tokens from Keycloak (legacy)
 - `tokenmanager.py` - Contains the `TokenManager` class for managing authentication tokens
 - `tokenhandler_factory.py` - Factory for creating token handlers
 
@@ -73,7 +72,7 @@ The main script is `import_prices.py`, which:
 3. Fetches price data for the configured tickers and timeframes using the `PriceImporter` class
 4. Writes the data to InfluxDB
 
-The script uses the `VaultTokenHandler` to retrieve tokens from Vault, but also maintains backward compatibility with the `KeycloakTokenHandler` for legacy systems.
+The script uses the `VaultTokenHandler` to retrieve tokens from Vault.
 
 To run the script:
 

@@ -10,7 +10,7 @@ import pytest
 
 import os
 from importer.tokenmanager import TokenManager
-from importer.keycloak_handler import KeycloakTokenHandler
+from importer.vault_handler import VaultTokenHandler
 
 
 class TestTokenManager:
@@ -67,27 +67,26 @@ class TestTokenManager:
 
         assert token_manager._tokens_cache == {}
 
-    def test_get_influxdb_token_not_keycloak_handler(self, token_manager):
-        """Test that get_token raises NotImplementedError for influxdb when not using KeycloakTokenHandler."""
+    def test_get_influxdb_token_not_vault_handler(self, token_manager):
+        """Test that get_token raises NotImplementedError for influxdb when not using VaultTokenHandler."""
         with pytest.raises((NotImplementedError, KeyError)):
             token_manager.get_token("influxdb")
 
     def test_get_influxdb_token_from_environment(self):
         """Test that get_token gets the influxdb token from the environment."""
-        # Create a mock with spec=KeycloakTokenHandler
-        mock_keycloak_handler = MagicMock(spec=KeycloakTokenHandler)
+        # Create a mock with spec=VaultTokenHandler
+        mock_vault_handler = MagicMock(spec=VaultTokenHandler)
 
-        # Create a TokenManager with the mock KeycloakTokenHandler
-        token_manager = TokenManager(mock_keycloak_handler)
+        # Create a TokenManager with the mock VaultTokenHandler
+        token_manager = TokenManager(mock_vault_handler)
 
         # Set the environment variable
         with patch.dict(os.environ, {"INFLUXDB_TOKEN": "env_influx_token"}):
             # Get influxdb token
             token = token_manager.get_token("influxdb")
 
-            # Verify keycloak token was not requested
-            mock_keycloak_handler.get_token.assert_not_called()
-            mock_keycloak_handler.get_client_secret.assert_not_called()
+            # Verify vault token was not requested
+            mock_vault_handler.get_token.assert_not_called()
 
             # Verify the token is from the environment
             assert token == "env_influx_token"

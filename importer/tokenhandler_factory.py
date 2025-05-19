@@ -12,7 +12,6 @@ from typing import Dict, Type
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from importer.tokenmanager import TokenHandler
-from importer.keycloak_handler import KeycloakTokenHandler
 from importer.environment_handler import EnvironmentTokenHandler
 from importer.vault_handler import VaultTokenHandler
 
@@ -21,7 +20,6 @@ class TokenHandlerFactory:
     """Factory for creating token handlers."""
 
     _handlers: Dict[str, Type[TokenHandler]] = {
-        'keycloak': KeycloakTokenHandler,
         'environment': EnvironmentTokenHandler,
         'vault': VaultTokenHandler
     }

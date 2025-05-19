@@ -8,8 +8,7 @@ This directory contains the configuration and code for the storage component of 
 
 1. **InfluxDB** - A time-series database for storing financial price data
 2. **Vault** - A secrets management service for secure token storage
-3. **Keycloak** - An identity and access management service (legacy, being replaced by Vault)
-4. **Importer** - A service that periodically imports price data from an external source
+3. **Importer** - A service that periodically imports price data from an external source
 
 ## Components
 
@@ -30,15 +29,6 @@ The Vault service provides:
 
 During the setup process, the InfluxDB read-write and read-only tokens are automatically stored in Vault. The importer service authenticates with Vault to retrieve these tokens when needed, providing a secure approach for managing sensitive credentials.
 
-### Keycloak (Legacy)
-
-The Keycloak service was previously used for:
-- Secure storage for authentication tokens
-- Identity and access management
-- Integration with the setup process to store InfluxDB tokens
-- Persistent storage using Docker volumes
-
-Note: Keycloak is being phased out in favor of Vault for secret management. It is kept for backward compatibility.
 
 ### Importer
 
@@ -61,8 +51,6 @@ Key configuration parameters:
 - `INFLUXDB_ORG` - Organization name in InfluxDB
 - `VAULT_TOKEN` - Root token for the Vault server
 - `VAULT_URL` - URL of the Vault instance
-- `KEYCLOAK_PASS` - Password for the Keycloak admin user (legacy)
-- `KEYCLOAK_URL` - URL of the Keycloak instance (legacy)
 
 Note: The InfluxDB tokens are not directly specified in the environment variables. Instead, they are automatically generated during setup and stored securely in Vault. The importer service retrieves these tokens from Vault when needed.
 
@@ -76,7 +64,7 @@ To start all services:
 docker-compose up -d
 ```
 
-This will start all three services: InfluxDB, Keycloak, and the importer.
+This will start all services: InfluxDB, Vault, and the importer.
 
 ### Accessing InfluxDB
 
@@ -86,17 +74,6 @@ InfluxDB is accessible on port 8086. You can access the InfluxDB UI at:
 http://localhost:8086
 ```
 
-### Accessing Keycloak
-
-Keycloak is accessible on port 8080. You can access the Keycloak admin console at:
-
-```
-http://localhost:8080/admin/
-```
-
-Login with:
-- Username: admin
-- Password: The value of KEYCLOAK_PASS from your .env file
 
 ### Data Structure
 
@@ -113,16 +90,15 @@ Each data point contains:
 
 ### Directory Structure
 
-- `docker/` - Contains Dockerfile and setup script for InfluxDB, Vault, and Keycloak integration
+- `docker/` - Contains Dockerfile and setup script for InfluxDB and Vault integration
 - `importer/` - Contains code for the data importer service
   - `import_prices.py` - Main script for importing price data
   - `config.toml` - Configuration for the importer (tickers, timeframes)
   - `vault_handler.py` - Handler for retrieving tokens from Vault
-  - `keycloak_handler.py` - Handler for retrieving tokens from Keycloak (legacy)
   - `run_hourly.sh` - Script to run the importer on an hourly schedule
   - `supervisord.conf` - Supervisor configuration for managing the importer process
-- `.env.example` - Example environment configuration including Vault and Keycloak settings
-- `docker-compose.yml` - Docker Compose configuration for all services (InfluxDB, Vault, Keycloak, Importer)
+- `.env.example` - Example environment configuration including Vault settings
+- `docker-compose.yml` - Docker Compose configuration for all services (InfluxDB, Vault, Importer)
 
 ### Adding New Data Sources
 

@@ -17,7 +17,6 @@ COPY ./config.toml /app/importer/
 COPY ./run_hourly.sh /app/
 COPY config.py /app/importer/
 COPY importer.py /app/importer/
-COPY keycloak_handler.py /app/importer/
 COPY environment_handler.py /app/importer/
 COPY vault_handler.py /app/importer/
 COPY tokenhandler_factory.py /app/importer/
