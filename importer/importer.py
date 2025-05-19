@@ -1,5 +1,9 @@
 import sys
 from typing import Dict, Any
+from pathlib import Path
+
+# Add the parent directory to the Python path so that 'importer' can be found as a package
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import requests
 from influxdb_client import InfluxDBClient, Point, WritePrecision

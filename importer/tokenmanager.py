@@ -7,14 +7,19 @@ This module provides the base classes for the token management system:
 """
 
 import abc
-from typing import Dict, Optional
+import sys
+from pathlib import Path
+from typing import Dict, Optional, Union
+
+# Add the parent directory to the Python path so that 'importer' can be found as a package
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 
 class TokenHandler(abc.ABC):
     """Abstract base class for token handlers."""
 
     @abc.abstractmethod
-    def get_token(self, **kwargs) -> str:
+    def get_token(self, **kwargs) -> dict[str, str] | str:
         """
         Get a token from the token store.
 
@@ -22,7 +27,7 @@ class TokenHandler(abc.ABC):
             **kwargs: Handler-specific parameters
 
         Returns:
-            str: The retrieved token
+            dict[str, str] | str: The retrieved token, either as a dictionary or a string
 
         Raises:
             KeyError: If there is an error
@@ -46,9 +51,9 @@ class TokenManager:
             token_handler (TokenHandler): The token handler to use
         """
         self.token_handler = token_handler
-        self._tokens_cache: Dict[str, str] = {}
+        self._tokens_cache: Dict[str, Union[dict[str, str], str]] = {}
 
-    def get_token(self, token_type: str, **kwargs) -> str:
+    def get_token(self, token_type: str, **kwargs) -> dict[str, str] | str:
         """
         Get a token of the specified type.
 
@@ -57,7 +62,8 @@ class TokenManager:
             **kwargs: Parameters to pass to the token handler
 
         Returns:
-            str: The retrieved token
+            dict[str, str] | str: The retrieved token, either as a dictionary or a string
+                                 depending on the token type and handler
 
         Raises:
             KeyError: If there is an error while retrieving the token
@@ -68,22 +74,27 @@ class TokenManager:
 
         # If it's a special token type that requires additional processing
         if token_type == "influxdb":
-            # First, get the Keycloak token
-            keycloak_token = self.get_token("keycloak", **kwargs)
-
-            # Then use it to get the InfluxDB token
-            from importer.token_manager.handlers.keycloak import KeycloakTokenHandler
-            if isinstance(self.token_handler, KeycloakTokenHandler):
-                influx_token = self.token_handler.get_client_secret(
-                    access_token=keycloak_token,
-                    server_url=kwargs.get('server_url'),
-                    realm_name=kwargs.get('realm_name'),
-                    client_secret_id=kwargs.get('client_secret_id')
-                )
+            # First try to get the token from environment
+            from importer.environment_handler import EnvironmentTokenHandler
+            env_handler = EnvironmentTokenHandler()
+            try:
+                influx_token = env_handler.get_token(env_var_name="INFLUXDB_TOKEN")
                 self._tokens_cache[token_type] = influx_token
                 return influx_token
-            else:
-                raise NotImplementedError(f"Token handler {type(self.token_handler)} does not support getting InfluxDB tokens")
+            except KeyError:
+                # If not available in environment, fall back to Vault
+                from importer.vault_handler import VaultTokenHandler
+                if isinstance(self.token_handler, VaultTokenHandler):
+                    influx_token = self.token_handler.get_token(
+                        vault_url=kwargs.get('vault_url'),
+                        vault_token=kwargs.get('vault_token'),
+                        secret_path=kwargs.get('secret_path'),
+                        secret_key=kwargs.get('secret_key')
+                    )
+                    self._tokens_cache[token_type] = influx_token
+                    return influx_token
+                else:
+                    raise NotImplementedError(f"Token handler {type(self.token_handler)} does not support getting InfluxDB tokens")
 
         # For regular token types, use the handler
         token = self.token_handler.get_token(**kwargs)

@@ -4,17 +4,26 @@ Token handler factory module.
 This module provides a factory for creating token handlers based on their names.
 """
 
+import sys
+from pathlib import Path
 from typing import Dict, Type
 
-from importer.token_manager.base import TokenHandler
-from importer.token_manager.handlers.keycloak import KeycloakTokenHandler
+# Add the parent directory to the Python path so that 'importer' can be found as a package
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from importer.tokenmanager import TokenHandler
+from importer.keycloak_handler import KeycloakTokenHandler
+from importer.environment_handler import EnvironmentTokenHandler
+from importer.vault_handler import VaultTokenHandler
 
 
 class TokenHandlerFactory:
     """Factory for creating token handlers."""
 
     _handlers: Dict[str, Type[TokenHandler]] = {
-        'keycloak': KeycloakTokenHandler
+        'keycloak': KeycloakTokenHandler,
+        'environment': EnvironmentTokenHandler,
+        'vault': VaultTokenHandler
     }
 
     @classmethod
