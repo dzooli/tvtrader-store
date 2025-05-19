@@ -143,6 +143,7 @@ class PriceImporter:
             data = resp.json()["result"]["prices"]
 
             for item in data:
+                logger.debug(f"Processing price data for {broker}:{ticker} at timeframe {timeframe}")
                 self.process_price_data(item, bucket, self.write_api)
         except requests.RequestException as e:
             logger.error(f"Error fetching data for {broker}:{ticker} at timeframe {timeframe}: {e}")
