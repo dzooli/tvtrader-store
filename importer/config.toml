@@ -1,0 +1,28 @@
+# Configuration for import_prices.py
+
+[general]
+# Data source URL
+datasource_url = "http://localhost:3000"
+
+# InfluxDB configuration
+influx_url = "http://influxdb:8086"
+influx_org = "pricestore"
+
+
+# Vault configuration
+vault_url = "http://vault:8200"
+vault_secret_path = "influxdb"
+vault_secret_key = "token"
+
+[data]
+# Tickers to fetch prices for in format BROKER:TICKER
+tickers = [
+    "FX:GBPUSD",
+    "FX:EURUSD"
+]
+
+# Timeframes to fetch prices for
+timeframes = [
+    "4H",
+    "1D"
+]

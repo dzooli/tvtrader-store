@@ -1,0 +1,46 @@
+services:
+  vault:
+    image: hashicorp/vault:latest
+    env_file: .env
+    cap_add:
+      - IPC_LOCK
+    ports:
+      - "8200:8200"
+    environment:
+      - VAULT_DEV_ROOT_TOKEN_ID=${VAULT_TOKEN}
+      - VAULT_DEV_LISTEN_ADDRESS=0.0.0.0:8200
+    command: server -dev
+    volumes:
+      - vault-data:/vault/data
+
+  influxdb:
+    build: ./docker
+    env_file: .env
+    depends_on:
+      - vault
+    ports:
+      - "8086:8086"
+    volumes:
+      - influxdb-data:/var/lib/influxdb2
+      - influxdb-config:/etc/influxdb2
+
+  importer:
+    build:
+      context: ./importer
+    env_file: .env
+    depends_on:
+      - influxdb
+      - vault
+    command: supervisord -c /etc/supervisor/supervisord.conf
+    volumes:
+      - ./importer:/app/importer
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+    influxdb-data:
+    influxdb-config:
+    vault-data:
