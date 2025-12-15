@@ -23,7 +23,7 @@ def main():
     config = Config()
 
     # Initialize token handler and manager using factory
-    token_handler = TokenHandlerFactory.get_handler('vault')
+    token_handler = TokenHandlerFactory.get_handler("vault")
     token_manager = TokenManager(token_handler)
 
     # Try to get InfluxDB token from environment first
@@ -38,7 +38,7 @@ def main():
             vault_url=config.vault_url,
             vault_token=config.vault_token,
             secret_path=config.vault_secret_path,
-            secret_key=config.vault_secret_key
+            secret_key=config.vault_secret_key,
         )
 
     # Initialize price importer

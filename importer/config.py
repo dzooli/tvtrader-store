@@ -14,7 +14,7 @@ logger.add(sys.stdout, format="{time} | {level} | {message}")
 class Config:
     """Class to handle configuration loading and access."""
 
-    def __init__(self, config_path: Path = None):
+    def __init__(self, config_path: Path | None = None):
         """
         Initialize configuration from config file and environment variables.
 
@@ -47,7 +47,6 @@ class Config:
                 logger.error("DATASOURCE_URL not found in environment variables or config file")
                 raise ValueError("DATASOURCE_URL not found in environment variables or config file")
 
-
     def _load_influxdb_token(self):
         """Load InfluxDB token from the environment."""
         self._influxdb_token = os.environ.get("INFLUXDB_TOKEN")
@@ -69,7 +68,6 @@ class Config:
     def influx_org(self) -> str:
         """Get InfluxDB organization."""
         return self._config["general"]["influx_org"]
-
 
     @property
     def tickers(self) -> List[str]:
@@ -97,11 +95,11 @@ class Config:
         return self._config["general"].get("vault_secret_key", "token")
 
     @property
-    def vault_token(self) -> str:
+    def vault_token(self) -> str | None:
         """Get Vault token."""
         return self._vault_token
 
     @property
-    def influxdb_token(self) -> str:
+    def influxdb_token(self) -> str | None:
         """Get InfluxDB token."""
         return self._influxdb_token

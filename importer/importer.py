@@ -1,14 +1,15 @@
 import sys
 from typing import Dict, Any
 from pathlib import Path
+import requests
+from influxdb_client.client.influxdb_client import InfluxDBClient
+from influxdb_client.client.write.point import Point
+from influxdb_client.domain.write_precision import WritePrecision
+from influxdb_client.client.write_api import SYNCHRONOUS
+from loguru import logger
 
 # Add the parent directory to the Python path so that 'importer' can be found as a package
 sys.path.insert(0, str(Path(__file__).parent.parent))
-
-import requests
-from influxdb_client import InfluxDBClient, Point, WritePrecision
-from influxdb_client.client.write_api import SYNCHRONOUS
-from loguru import logger
 
 from importer.config import Config
 
@@ -54,7 +55,7 @@ class PriceImporter:
             "240": "prices_4h",
             "4H": "prices_4h",
             "1D": "prices_1d",
-            "1W": "prices_1w"
+            "1W": "prices_1w",
         }
         return mapping.get(timeframe, "prices_default")
 
@@ -68,16 +69,18 @@ class PriceImporter:
             bucket (str): The InfluxDB bucket to write to
             write_api: The InfluxDB write API client
         """
-        p = Point(item["measurement"]) \
-            .tag("ticker", item["ticker"]) \
-            .tag("broker", item["broker"]) \
-            .tag("timeframe", item["timeframe"]) \
-            .field("open", item["open"]) \
-            .field("high", item["high"]) \
-            .field("low", item["low"]) \
-            .field("close", item["close"]) \
-            .field("volume", item["volume"]) \
+        p = (
+            Point(item["measurement"])
+            .tag("ticker", item["ticker"])
+            .tag("broker", item["broker"])
+            .tag("timeframe", item["timeframe"])
+            .field("open", item["open"])
+            .field("high", item["high"])
+            .field("low", item["low"])
+            .field("close", item["close"])
+            .field("volume", item["volume"])
             .time(item["timestamp"], WritePrecision.S)
+        )
 
         logger.debug(f"Writing price data to InfluxDB bucket: {bucket}")
         write_api.write(bucket=bucket, record=p)
@@ -95,11 +98,7 @@ class PriceImporter:
         """
         logger.info(f"Connecting to InfluxDB at {self.config.influx_url} with organization {self.config.influx_org}")
         try:
-            self.influx_client = InfluxDBClient(
-                url=self.config.influx_url,
-                token=token,
-                org=self.config.influx_org
-            )
+            self.influx_client = InfluxDBClient(url=self.config.influx_url, token=token, org=self.config.influx_org)
             self.write_api = self.influx_client.write_api(write_options=SYNCHRONOUS)
             logger.success(f"Connected to InfluxDB: {str(self.write_api)}")
         except Exception as if_exc:
@@ -131,10 +130,7 @@ class PriceImporter:
         """
         bucket = self.get_bucket_for_timeframe(timeframe)
         url = self.config.url_template.format(
-            base=self.config.datasource_url,
-            ticker=ticker,
-            broker=broker,
-            tf=timeframe
+            base=self.config.datasource_url, ticker=ticker, broker=broker, tf=timeframe
         )
 
         try:
